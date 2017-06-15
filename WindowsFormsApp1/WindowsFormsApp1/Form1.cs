@@ -55,5 +55,10 @@ namespace WindowsFormsApp1
             Form4 rankingForm = new Form4();
             rankingForm.Show();
         }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
