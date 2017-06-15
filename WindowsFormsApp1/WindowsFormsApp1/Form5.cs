@@ -17,6 +17,7 @@ namespace WindowsFormsApp1
         string dbUser = "root";//資料庫使用者帳號
         string dbPass = "";//資料庫使用者密碼
         string dbName = "project";//資料庫名稱
+        MySqlConnection conn;
 
         DataRow[] rows;
 
@@ -25,20 +26,25 @@ namespace WindowsFormsApp1
             InitializeComponent();
 
             string connStr = "server=" + dbHost + ";uid=" + dbUser + ";pwd=" + dbPass + ";database=" + dbName + ";charset=utf8;";
-            MySqlConnection conn = new MySqlConnection(connStr);
-            conn.Open();
-
-            string sql = "SELECT * FROM member";
-            MySqlCommand cmd = new MySqlCommand(sql, conn);
-            var dt = new DataTable();
-            dt.Load(cmd.ExecuteReader());
-            rows = dt.AsEnumerable().ToArray();
-            conn.Close();
+            conn = new MySqlConnection(connStr);
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
+            conn.Open();
+            string sql = @"SELECT * FROM member WHERE name='" + textBox1.Text + "' AND pwd='" + textBox2.Text + "';";
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            object result = cmd.ExecuteScalar();
+            conn.Close();
 
+            if (result != null)
+            {
+                MessageBox.Show("成功", "登入成功", MessageBoxButtons.OK, MessageBoxIcon.None);
+            }
+            else
+            {
+                MessageBox.Show("失敗", "登入失敗", MessageBoxButtons.OK, MessageBoxIcon.None);
+            }
         }
     }
 }

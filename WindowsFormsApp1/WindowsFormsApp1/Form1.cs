@@ -58,7 +58,8 @@ namespace WindowsFormsApp1
 
         private void pictureBox1_Click(object sender, EventArgs e)
         {
-
+            Form5 logForm = new Form5();
+            logForm.Show();
         }
     }
 }
