@@ -13,13 +13,11 @@ namespace WindowsFormsApp1
 {
     public partial class Form5 : Form
     {
-        string dbHost = "127.0.0.1";//資料庫位址
-        string dbUser = "root";//資料庫使用者帳號
-        string dbPass = "";//資料庫使用者密碼
-        string dbName = "project";//資料庫名稱
+        string dbHost = DBConfig.dbHost;
+        string dbUser = DBConfig.dbUser;
+        string dbPass = DBConfig.dbPass;
+        string dbName = DBConfig.dbName;
         MySqlConnection conn;
-
-        DataRow[] rows;
 
         public Form5()
         {
@@ -32,19 +30,40 @@ namespace WindowsFormsApp1
         private void button1_Click(object sender, EventArgs e)
         {
             conn.Open();
-            string sql = @"SELECT * FROM member WHERE name='" + textBox1.Text + "' AND pwd='" + textBox2.Text + "';";
+            string sql = @"SELECT * FROM member WHERE name=@name AND pwd=MD5(@pwd)";
             MySqlCommand cmd = new MySqlCommand(sql, conn);
-            object result = cmd.ExecuteScalar();
-            conn.Close();
+            cmd.Parameters.AddWithValue("@name", textBox1.Text);
+            cmd.Parameters.AddWithValue("@pwd", textBox2.Text);
+            MySqlDataReader data = cmd.ExecuteReader();
 
-            if (result != null)
+            if (data.HasRows)
             {
-                MessageBox.Show("成功", "登入成功", MessageBoxButtons.OK, MessageBoxIcon.None);
+                while (data.Read())
+                    CurrentPlayer.Login(data["name"].ToString());
+                Form1 mainForm = new Form1();
+                Hide();
+                mainForm.ShowDialog();
+                Close();
             }
             else
             {
-                MessageBox.Show("失敗", "登入失敗", MessageBoxButtons.OK, MessageBoxIcon.None);
+                MessageBox.Show("帳號或密碼錯誤", "登入失敗", MessageBoxButtons.OK, MessageBoxIcon.None);
             }
+            conn.Close();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            RegForm regform = new RegForm();
+            Hide();
+            regform.ShowDialog();
+            Close();
+        }
+
+        private void button1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                button1_Click(sender, e);
         }
     }
 }

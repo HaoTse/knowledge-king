@@ -13,10 +13,10 @@ namespace WindowsFormsApp1
 {
     public partial class Form4 : Form
     {
-        string dbHost = "127.0.0.1";//資料庫位址
-        string dbUser = "root";//資料庫使用者帳號
-        string dbPass = "";//資料庫使用者密碼
-        string dbName = "project";//資料庫名稱
+        string dbHost = DBConfig.dbHost;
+        string dbUser = DBConfig.dbUser;
+        string dbPass = DBConfig.dbPass;
+        string dbName = DBConfig.dbName;
 
         public Form4()
         {

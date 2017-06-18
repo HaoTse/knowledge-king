@@ -8,31 +8,40 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
+using System.Threading;
 
 namespace WindowsFormsApp1
 {
     public partial class Form3 : Form
     {
+        string dbHost = DBConfig.dbHost;
+        string dbUser = DBConfig.dbUser;
+        string dbPass = DBConfig.dbPass;
+        string dbName = DBConfig.dbName;
+        MySqlConnection conn;
+
         private int cnt;
         int[] index = new int[5];
-        string dbHost = "127.0.0.1";//資料庫位址
-        string dbUser = "root";//資料庫使用者帳號
-        string dbPass = "";//資料庫使用者密碼
-        string dbName = "project";//資料庫名稱
-
         int[] ValueString = new int[5];
 
+        Button[] btnArr;
+
         string ans;
+        int opt;
         int num = 0;
 
         int score = 0;
 
         public Form3()
         {
+            string connStr = "server=" + dbHost + ";uid=" + dbUser + ";pwd=" + dbPass + ";database=" + dbName + ";charset=utf8;";
+            conn = new MySqlConnection(connStr);
+
             InitializeComponent();
             this.Height = 510;
             cnt = 8;
             timer1.Interval = 1000;
+            timer2.Interval = 300;
 
             getRand();
             timer1.Enabled = true;
@@ -40,13 +49,19 @@ namespace WindowsFormsApp1
 
         private void Form3_Load(object sender, EventArgs e)
         {
-            
+            btnArr = new Button[4] { button1, button2, button3, button4 };
+
         }
 
         private void getRand()
         {
             Random rnd = new Random();
-            int max = 20;
+            // get max
+            conn.Open();
+            string sql = "SELECT COUNT(*) FROM quiz";
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            int max = (int)(long)cmd.ExecuteScalar();
+            conn.Close();
 
             //  亂數產生
             for (int i = 0; i < 5; i++)
@@ -66,16 +81,25 @@ namespace WindowsFormsApp1
 
         private void getProblem(int index)
         {
+            button1.BackColor = SystemColors.InactiveCaption;
+            button2.BackColor = SystemColors.InactiveCaption;
+            button3.BackColor = SystemColors.InactiveCaption;
+            button4.BackColor = SystemColors.InactiveCaption;
+
+            button1.Enabled = true;
+            button2.Enabled = true;
+            button3.Enabled = true;
+            button4.Enabled = true;
+
             if (index > 4)
             {
                 timer1.Enabled = false;
+                timer2.Enabled = false;
 
-                string connStr = "server=" + dbHost + ";uid=" + dbUser + ";pwd=" + dbPass + ";database=" + dbName + ";charset=utf8;";
-                MySqlConnection conn = new MySqlConnection(connStr);
                 MySqlCommand command = conn.CreateCommand();
                 conn.Open();
 
-                command.CommandText = "INSERT INTO ranking(score) VALUES(" + score + ")";
+                command.CommandText = "INSERT INTO ranking(name, score) VALUES('" + CurrentPlayer.getPlayer() + "', " + score + ")";
                 command.ExecuteNonQuery();
 
                 conn.Close();
@@ -89,40 +113,23 @@ namespace WindowsFormsApp1
             }
             else
             {
-                string connStr = "server=" + dbHost + ";uid=" + dbUser + ";pwd=" + dbPass + ";database=" + dbName + ";charset=utf8;";
-                MySqlConnection conn = new MySqlConnection(connStr);
                 conn.Open();
 
-                string sql = "SELECT problem FROM quiz WHERE id=" + ValueString[index].ToString();
+                string sql = "SELECT * FROM quiz WHERE id=" + ValueString[index].ToString();
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
-                string prob = (string)cmd.ExecuteScalar();
-                label2.Text = prob;
+                MySqlDataReader data = cmd.ExecuteReader();
+                while (data.Read())
+                {
+                    label2.Text = data["problem"].ToString();
+                    button1.Text = data["A"].ToString();
+                    button2.Text = data["B"].ToString();
+                    button3.Text = data["C"].ToString();
+                    button4.Text = data["D"].ToString();
+                    label5.Text = ans = data["ans"].ToString();
+                    opt = int.Parse(data["opt"].ToString());
 
-                sql = "SELECT A FROM quiz WHERE id=" + ValueString[index].ToString();
-                cmd = new MySqlCommand(sql, conn);
-                string opt1 = (string)cmd.ExecuteScalar();
-                button1.Text = opt1;
 
-                sql = "SELECT B FROM quiz WHERE id=" + ValueString[index].ToString();
-                cmd = new MySqlCommand(sql, conn);
-                string opt2 = (string)cmd.ExecuteScalar();
-                button2.Text = opt2;
-
-                sql = "SELECT C FROM quiz WHERE id=" + ValueString[index].ToString();
-                cmd = new MySqlCommand(sql, conn);
-                string opt3 = (string)cmd.ExecuteScalar();
-                button3.Text = opt3;
-
-                sql = "SELECT D FROM quiz WHERE id=" + ValueString[index].ToString();
-                cmd = new MySqlCommand(sql, conn);
-                string opt4 = (string)cmd.ExecuteScalar();
-                button4.Text = opt4;
-
-                sql = "SELECT ans FROM quiz WHERE id=" + ValueString[index].ToString();
-                cmd = new MySqlCommand(sql, conn);
-                ans = (string)cmd.ExecuteScalar();
-
-                label5.Text = ans;
+                }
 
                 conn.Close();
             }
@@ -132,12 +139,10 @@ namespace WindowsFormsApp1
         {
             if (cnt <= 0)
             {
+                btnArr[opt-1].BackColor = Color.FromArgb(159, 223, 201);
                 timer1.Enabled = false;
-                cnt = 8;
-                label1.Text = cnt.ToString();
 
-                getProblem(++num);
-                timer1.Enabled = true;
+                timer2.Enabled = true;
 
             }
             else
@@ -145,6 +150,15 @@ namespace WindowsFormsApp1
                 cnt = cnt - 1;
                 label1.Text = cnt.ToString();
             }
+        }
+
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            getProblem(++num);
+            cnt = 8;
+            label1.Text = cnt.ToString();
+            timer1.Enabled = true;
+            timer2.Enabled = false;
         }
 
         private void button1_MouseEnter(object sender, EventArgs e)
@@ -159,63 +173,28 @@ namespace WindowsFormsApp1
 
         private void button1_Click(object sender, EventArgs e)
         {
+            Button btn = (Button)sender;
+
             timer1.Enabled = false;
+
+            button1.Enabled = false;
+            button2.Enabled = false;
+            button3.Enabled = false;
+            button4.Enabled = false;
+
+            if (btn.Text == ans)
+            {
+                score = score + cnt;
+                label4.Text = score.ToString();
+                btn.BackColor = Color.FromArgb(159, 223, 201);
+            }
+            else
+            {
+                btn.BackColor = Color.LightCoral;
+                btnArr[opt - 1].BackColor = Color.FromArgb(159, 223, 201);
+            }
             
-            if (button1.Text == ans)
-            {
-                score = score + cnt;
-                label4.Text = score.ToString();
-            }
-            cnt = 8;
-            label1.Text = cnt.ToString();
-
-            getProblem(++num);
-            timer1.Enabled = true;
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            timer1.Enabled = false;
-            
-            if (button2.Text == ans)
-            {
-                score = score + cnt;
-                label4.Text = score.ToString();
-            }
-            cnt = 8;
-            label1.Text = cnt.ToString();
-            getProblem(++num);
-            timer1.Enabled = true;
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            timer1.Enabled = false;
-
-            if (button3.Text == ans)
-            {
-                score = score + cnt;
-                label4.Text = score.ToString();
-            }
-            cnt = 8;
-            label1.Text = cnt.ToString();
-            getProblem(++num);
-            timer1.Enabled = true;
-        }
-
-        private void button4_Click(object sender, EventArgs e)
-        {
-            timer1.Enabled = false;
-            
-            if (button4.Text == ans)
-            {
-                score = score + cnt;
-                label4.Text = score.ToString();
-            }
-            cnt = 8;
-            label1.Text = cnt.ToString();
-            getProblem(++num);
-            timer1.Enabled = true;
+            timer2.Enabled = true;
         }
     }
 }
